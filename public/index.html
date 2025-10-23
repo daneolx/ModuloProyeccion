@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Efecto de la Inflación sobre el Ahorro</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>💰 Módulo de Efecto de la Inflación sobre el Ahorro</h1>
+            <p class="subtitle">Calcula el impacto de la inflación en tu poder adquisitivo</p>
+        </header>
+
+        <main class="main-content">
+            <div class="form-section">
+                <form id="inflationForm" class="form">
+                    <div class="form-group">
+                        <label for="amount_nominal">Monto Nominal Inicial</label>
+                        <div class="input-group">
+                            <span class="currency-symbol">$</span>
+                            <input 
+                                type="number" 
+                                id="amount_nominal" 
+                                name="amount_nominal" 
+                                placeholder="10000"
+                                step="0.01"
+                                min="0.01"
+                                max="999999999"
+                                required
+                            >
+                        </div>
+                        <small class="help-text">Ingresa el monto que planeas ahorrar</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="inflation_rate">Tasa de Inflación Anual (%)</label>
+                        <div class="input-group">
+                            <input 
+                                type="number" 
+                                id="inflation_rate" 
+                                name="inflation_rate" 
+                                placeholder="6.5"
+                                step="0.1"
+                                min="0"
+                                max="100"
+                                required
+                            >
+                            <span class="percentage-symbol">%</span>
+                        </div>
+                        <small class="help-text">Tasa de inflación esperada por año</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="years">Período de Tiempo (años)</label>
+                        <div class="input-group">
+                            <input 
+                                type="number" 
+                                id="years" 
+                                name="years" 
+                                placeholder="3"
+                                step="0.25"
+                                min="0.25"
+                                max="100"
+                                required
+                            >
+                            <span class="time-symbol">años</span>
+                        </div>
+                        <small class="help-text">Puede ser fraccional (ej: 2.5 años)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="granularity">Granularidad del Análisis</label>
+                        <select id="granularity" name="granularity">
+                            <option value="none">Solo resultado final</option>
+                            <option value="yearly">Análisis anual</option>
+                            <option value="quarterly">Análisis trimestral</option>
+                        </select>
+                        <small class="help-text">Detalle del análisis temporal</small>
+                    </div>
+
+                    <button type="submit" class="calculate-btn">
+                        <span class="btn-text">Calcular Efecto de Inflación</span>
+                        <span class="btn-icon">📊</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <h2>Resultados del Análisis</h2>
+                
+                <div class="results-grid">
+                    <div class="result-card primary">
+                        <div class="result-icon">💵</div>
+                        <div class="result-content">
+                            <h3>Valor Real Final</h3>
+                            <div class="result-value" id="realValue">$0.00</div>
+                            <div class="result-description">Poder adquisitivo actual</div>
+                        </div>
+                    </div>
+
+                    <div class="result-card danger">
+                        <div class="result-icon">📉</div>
+                        <div class="result-content">
+                            <h3>Pérdida Absoluta</h3>
+                            <div class="result-value" id="absoluteLoss">$0.00</div>
+                            <div class="result-description">Dinero perdido por inflación</div>
+                        </div>
+                    </div>
+
+                    <div class="result-card warning">
+                        <div class="result-icon">📊</div>
+                        <div class="result-content">
+                            <h3>Pérdida Porcentual</h3>
+                            <div class="result-value" id="lossPercent">0.00%</div>
+                            <div class="result-description">Porcentaje de pérdida</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="summary-card">
+                    <h3>Resumen del Análisis</h3>
+                    <div class="summary-content" id="summaryContent">
+                        <!-- Contenido generado dinámicamente -->
+                    </div>
+                </div>
+
+                <div class="series-section" id="seriesSection" style="display: none;">
+                    <h3>Evolución Temporal</h3>
+                    <div class="table-container">
+                        <table class="series-table" id="seriesTable">
+                            <thead>
+                                <tr>
+                                    <th>Período</th>
+                                    <th>Años</th>
+                                    <th>Valor Real</th>
+                                    <th>Pérdida %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="seriesTableBody">
+                                <!-- Filas generadas dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="chart-section" id="chartSection" style="display: none;">
+                    <h3>Gráfico de Evolución</h3>
+                    <canvas id="evolutionChart" width="800" height="400"></canvas>
+                </div>
+            </div>
+
+            <div class="loading-section" id="loadingSection" style="display: none;">
+                <div class="loading-spinner"></div>
+                <p>Calculando efecto de inflación...</p>
+            </div>
+
+            <div class="error-section" id="errorSection" style="display: none;">
+                <div class="error-icon">⚠️</div>
+                <h3>Error en el Cálculo</h3>
+                <p id="errorMessage">Ha ocurrido un error inesperado</p>
+                <button class="retry-btn" onclick="hideError()">Intentar Nuevamente</button>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <p>Desarrollado por: Anibal Huaman, Karen Medrano, David Cantorín, Sulmairy Garcia, Diego Arrieta</p>
+                <p>Universidad Continental - Construcción de Software</p>
+                <div class="footer-links">
+                    <a href="/api/v1/info" target="_blank">📖 Documentación API</a>
+                    <a href="#" onclick="showExample()">💡 Ver Ejemplo</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

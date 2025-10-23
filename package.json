@@ -1,0 +1,47 @@
+{
+  "name": "modulo-inflacion-ahorro",
+  "version": "1.0.0",
+  "description": "Módulo para calcular el efecto de la inflación sobre el ahorro",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "vitest",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint src/ public/",
+    "lint:fix": "eslint src/ public/ --fix",
+    "format": "prettier --write src/ public/",
+    "format:check": "prettier --check src/ public/"
+  },
+  "keywords": [
+    "inflacion",
+    "ahorro",
+    "finanzas",
+    "nodejs",
+    "express"
+  ],
+  "author": "Anibal Huaman, Karen Medrano, David Cantorín, Sulmairy Garcia, Diego Arrieta",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "zod": "^3.22.4",
+    "compression": "^1.7.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "vitest": "^1.0.4",
+    "supertest": "^6.3.3",
+    "@vitest/coverage-v8": "^1.0.4",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.0.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
