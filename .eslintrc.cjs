@@ -53,7 +53,12 @@ module.exports = {
       files: ['**/*.test.js', '**/*.spec.js'],
       env: {
         jest: true,
-        vitest: true,
+      },
+      globals: {
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        vi: 'readonly',
       },
       rules: {
         'no-unused-expressions': 'off',
