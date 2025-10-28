@@ -6,7 +6,9 @@
 import express from 'express';
 import { 
   calculateInflationEffectController, 
-  getApiInfoController, 
+  getApiInfoController,
+  getHistoryController,
+  getStatisticsController,
   notFoundController 
 } from './effect.controller.js';
 
@@ -53,6 +55,42 @@ router.get('/info', getApiInfoController);
  * }
  */
 router.post('/inflation/effect', calculateInflationEffectController);
+
+/**
+ * GET /api/v1/inflation/history
+ * Endpoint para obtener el historial de consultas
+ * 
+ * Query params:
+ * - limit: número de resultados (default: 50)
+ * - offset: offset para paginación (default: 0)
+ * 
+ * Respuesta exitosa (200):
+ * {
+ *   "success": true,
+ *   "data": [...],
+ *   "total": 150,
+ *   "limit": 50,
+ *   "offset": 0
+ * }
+ */
+router.get('/inflation/history', getHistoryController);
+
+/**
+ * GET /api/v1/inflation/statistics
+ * Endpoint para obtener estadísticas de consultas
+ * 
+ * Respuesta exitosa (200):
+ * {
+ *   "success": true,
+ *   "data": {
+ *     "total_queries": 150,
+ *     "avg_amount_nominal": 12500,
+ *     "avg_inflation_rate": 6.5,
+ *     ...
+ *   }
+ * }
+ */
+router.get('/inflation/statistics', getStatisticsController);
 
 /**
  * Manejo de rutas no encontradas para la API

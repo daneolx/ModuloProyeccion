@@ -13,6 +13,7 @@ import { fileURLToPath } from 'url';
 
 import apiRoutes from './api/routes.js';
 import { errorHandlerMiddleware } from './api/effect.controller.js';
+import { testConnection } from './persistence/db.js';
 
 // Configuración para ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -107,7 +108,7 @@ app.get('/', (req, res) => {
 app.use(errorHandlerMiddleware);
 
 // Iniciar servidor
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   console.log(`🚀 Servidor iniciado en puerto ${PORT}`);
   console.log(`📊 Módulo de Efecto de la Inflación sobre el Ahorro`);
   console.log(`🌐 Accede a: http://localhost:${PORT}`);
@@ -118,6 +119,9 @@ const server = app.listen(PORT, () => {
   } else {
     console.log(`🏭 Modo: Producción`);
   }
+  
+  // Probar conexión a PostgreSQL
+  await testConnection();
 });
 
 // Manejo graceful de cierre del servidor

@@ -5,6 +5,11 @@
 
 import { calculateInflationEffect } from '../core/calculator.js';
 import { validateInflationEffectData } from '../domain/validation.js';
+import { 
+  saveInflationQuery,
+  getAllInflationQueries,
+  getQueryStatistics
+} from '../persistence/queries.repository.js';
 
 /**
  * Maneja la solicitud POST para calcular el efecto de la inflación
@@ -21,6 +26,24 @@ export async function calculateInflationEffectController(req, res) {
     
     // Log de la operación (opcional para auditoría)
     console.log(`Cálculo realizado: ${validatedData.amount_nominal} a ${validatedData.inflation_rate}% por ${validatedData.years} años`);
+    
+    // Guardar en base de datos
+    try {
+      const clientIp = req.ip || req.connection.remoteAddress;
+      const userAgent = req.get('user-agent');
+      
+      await saveInflationQuery({
+        ...validatedData,
+        ...result,
+        client_ip: clientIp,
+        user_agent: userAgent,
+      });
+      
+      console.log('✅ Consulta guardada en base de datos');
+    } catch (dbError) {
+      // Si falla la base de datos, continuamos con la respuesta
+      console.error('⚠️ Error al guardar en base de datos:', dbError.message);
+    }
     
     // Retornar resultado exitoso
     res.status(200).json({
@@ -100,6 +123,58 @@ export function notFoundController(req, res) {
       'POST /api/v1/inflation/effect'
     ]
   });
+}
+
+/**
+ * Maneja la solicitud GET para obtener el historial de consultas
+ * @param {Object} req - Request object de Express
+ * @param {Object} res - Response object de Express
+ */
+export async function getHistoryController(req, res) {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = parseInt(req.query.offset) || 0;
+    
+    const result = await getAllInflationQueries({ limit, offset });
+    
+    res.status(200).json({
+      success: true,
+      data: result.data,
+      total: result.total,
+      limit: result.limit,
+      offset: result.offset
+    });
+  } catch (error) {
+    console.error('Error al obtener historial:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener el historial de consultas',
+      timestamp: new Date().toISOString()
+    });
+  }
+}
+
+/**
+ * Maneja la solicitud GET para obtener estadísticas
+ * @param {Object} req - Request object de Express
+ * @param {Object} res - Response object de Express
+ */
+export async function getStatisticsController(req, res) {
+  try {
+    const stats = await getQueryStatistics();
+    
+    res.status(200).json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Error al obtener estadísticas:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener estadísticas',
+      timestamp: new Date().toISOString()
+    });
+  }
 }
 
 /**
