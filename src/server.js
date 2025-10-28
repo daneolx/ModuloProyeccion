@@ -9,6 +9,7 @@ import helmet from 'helmet';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
+import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 
 import apiRoutes from './api/routes.js';
@@ -18,75 +19,89 @@ import { testConnection } from './persistence/db.js';
 // Configuración para ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+// Cargar variables de entorno
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const isTest = process.env.NODE_ENV === 'test';
 
 // Middleware de seguridad
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'"],
+        imgSrc: ["'self'", 'data:', 'https:'],
+      },
     },
-  },
-}));
+  }),
+);
 
 // Configuración de CORS
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://tu-dominio.com'] // Reemplazar con dominio real
-    : true, // Permitir todos los orígenes en desarrollo
-  credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? ['https://tu-dominio.com'] // Reemplazar con dominio real
+        : true, // Permitir todos los orígenes en desarrollo
+    credentials: true,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }),
+);
 
 // Compresión de respuestas
 app.use(compression());
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 100, // Límite de 100 requests por IP por ventana
-  message: {
-    success: false,
-    error: 'Demasiadas solicitudes desde esta IP, intente nuevamente en 15 minutos',
-    timestamp: new Date().toISOString()
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use('/api/', limiter);
+// Rate limiting (desactivado en test)
+if (!isTest) {
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 100, // Límite de 100 requests por IP por ventana
+    message: {
+      success: false,
+      error: 'Demasiadas solicitudes desde esta IP, intente nuevamente en 15 minutos',
+      timestamp: new Date().toISOString(),
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  app.use('/api/', limiter);
+}
 
 // Middleware para parsing de JSON
-app.use(express.json({ 
-  limit: '10mb',
-  verify: (req, res, buf) => {
-    try {
-      JSON.parse(buf);
-    } catch (e) {
-      res.status(400).json({
-        success: false,
-        error: 'JSON inválido en el cuerpo de la solicitud',
-        timestamp: new Date().toISOString()
-      });
-      throw new Error('Invalid JSON');
-    }
-  }
-}));
+app.use(
+  express.json({
+    limit: '10mb',
+    verify: (req, res, buf) => {
+      try {
+        JSON.parse(buf);
+      } catch (e) {
+        res.status(400).json({
+          success: false,
+          error: 'JSON inválido en el cuerpo de la solicitud',
+          timestamp: new Date().toISOString(),
+        });
+        throw new Error('Invalid JSON');
+      }
+    },
+  }),
+);
 
 // Middleware para parsing de URL encoded
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Servir archivos estáticos desde la carpeta public
-app.use(express.static(path.join(__dirname, '../public'), {
-  maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
-  etag: true,
-  lastModified: true
-}));
+app.use(
+  express.static(path.join(__dirname, '../public'), {
+    maxAge: process.env.NODE_ENV === 'production' ? '1d' : 0,
+    etag: true,
+    lastModified: true,
+  }),
+);
 
 // Middleware de logging para desarrollo
 if (process.env.NODE_ENV === 'development') {
@@ -107,49 +122,51 @@ app.get('/', (req, res) => {
 // Middleware de manejo de errores (debe ir al final)
 app.use(errorHandlerMiddleware);
 
-// Iniciar servidor
-const server = app.listen(PORT, async () => {
-  console.log(`🚀 Servidor iniciado en puerto ${PORT}`);
-  console.log(`📊 Módulo de Efecto de la Inflación sobre el Ahorro`);
-  console.log(`🌐 Accede a: http://localhost:${PORT}`);
-  console.log(`📖 API Info: http://localhost:${PORT}/api/v1/info`);
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`🔧 Modo: Desarrollo`);
-  } else {
-    console.log(`🏭 Modo: Producción`);
-  }
-  
-  // Probar conexión a PostgreSQL
-  await testConnection();
-});
+// Iniciar servidor solo si no estamos en test
+if (!isTest) {
+  const server = app.listen(PORT, async () => {
+    console.log(`🚀 Servidor iniciado en puerto ${PORT}`);
+    console.log(`📊 Módulo de Efecto de la Inflación sobre el Ahorro`);
+    console.log(`🌐 Accede a: http://localhost:${PORT}`);
+    console.log(`📖 API Info: http://localhost:${PORT}/api/v1/info`);
 
-// Manejo graceful de cierre del servidor
-process.on('SIGTERM', () => {
-  console.log('🛑 Recibida señal SIGTERM, cerrando servidor...');
-  server.close(() => {
-    console.log('✅ Servidor cerrado correctamente');
-    process.exit(0);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🔧 Modo: Desarrollo`);
+    } else {
+      console.log(`🏭 Modo: Producción`);
+    }
+
+    // Probar conexión a PostgreSQL
+    await testConnection();
   });
-});
 
-process.on('SIGINT', () => {
-  console.log('🛑 Recibida señal SIGINT, cerrando servidor...');
-  server.close(() => {
-    console.log('✅ Servidor cerrado correctamente');
-    process.exit(0);
+  // Manejo graceful de cierre del servidor
+  process.on('SIGTERM', () => {
+    console.log('🛑 Recibida señal SIGTERM, cerrando servidor...');
+    server.close(() => {
+      console.log('✅ Servidor cerrado correctamente');
+      process.exit(0);
+    });
   });
-});
 
-// Manejo de errores no capturados
-process.on('uncaughtException', (err) => {
-  console.error('❌ Error no capturado:', err);
-  process.exit(1);
-});
+  process.on('SIGINT', () => {
+    console.log('🛑 Recibida señal SIGINT, cerrando servidor...');
+    server.close(() => {
+      console.log('✅ Servidor cerrado correctamente');
+      process.exit(0);
+    });
+  });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('❌ Promesa rechazada no manejada:', reason);
-  process.exit(1);
-});
+  // Manejo de errores no capturados
+  process.on('uncaughtException', (err) => {
+    console.error('❌ Error no capturado:', err);
+    process.exit(1);
+  });
+
+  process.on('unhandledRejection', (reason) => {
+    console.error('❌ Promesa rechazada no manejada:', reason);
+    process.exit(1);
+  });
+}
 
 export default app;

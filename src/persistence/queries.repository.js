@@ -158,4 +158,3 @@ export async function getRecentQueries(limit = 10) {
   const result = await query(sql, [limit]);
   return result.rows;
 }
-

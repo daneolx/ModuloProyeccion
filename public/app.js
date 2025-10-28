@@ -168,9 +168,10 @@ class InflationCalculator {
         tableBody.innerHTML = '';
         
         series.forEach(item => {
+            console.log(item);
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${item.t}</td>
+                <td>${item.period}</td>
                 <td>${item.years.toFixed(2)}</td>
                 <td>${this.formatCurrency(item.real_value)}</td>
                 <td>${item.loss_percent.toFixed(2)}%</td>
@@ -363,10 +364,12 @@ class InflationCalculator {
 }
 
 // Funciones globales para uso en HTML
+// eslint-disable-next-line no-unused-vars
 function hideError() {
     window.inflationCalculator.hideError();
 }
 
+// eslint-disable-next-line no-unused-vars
 function showExample() {
     window.inflationCalculator.loadExampleData();
     

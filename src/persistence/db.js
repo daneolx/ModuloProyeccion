@@ -4,6 +4,11 @@
 
 import pg from 'pg';
 import dotenv from 'dotenv';
+// import path from 'path';
+// import { fileURLToPath } from 'url';
+
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -13,10 +18,10 @@ const { Pool } = pg;
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'inflacion_ahorro',
+  database: process.env.DB_NAME || 'EconomiaInflacionaria',
   user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-  max: 20, // Máximo de conexiones en el pool
+  password: process.env.DB_PASSWORD || '123',
+  max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
 });
@@ -73,7 +78,9 @@ export async function closePool() {
  */
 export async function testConnection() {
   try {
-    const result = await query('SELECT NOW()');
+    console.log('contrasenia: ', process.env.DB_PASSWORD || 'no password set');
+    console.log('usuario: ', process.env.DB_USER || 'no user set');
+    await query('SELECT NOW()');
     console.log('✅ Conexión a PostgreSQL exitosa');
     return true;
   } catch (error) {
@@ -83,4 +90,3 @@ export async function testConnection() {
 }
 
 export default pool;
-

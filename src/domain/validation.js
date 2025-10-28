@@ -1,142 +1,115 @@
 /**
- * Módulo de validación de dominio usando Zod
- * Valida los datos de entrada para el cálculo de inflación
+ * Módulo de validación de datos de entrada
+ * Utiliza Zod para validación de esquemas
  */
 
 import { z } from 'zod';
 
 /**
- * Schema de validación para el cálculo de efecto de inflación
+ * Esquema de validación para datos de efecto de inflación
  */
-export const inflationEffectSchema = z.object({
-  amount_nominal: z
-    .number()
-    .positive('El monto nominal debe ser mayor a cero')
-    .max(999999999, 'El monto nominal no puede exceder 999,999,999')
-    .refine(val => Number.isFinite(val), 'El monto nominal debe ser un número válido'),
-  
-  inflation_rate: z
-    .number()
-    .min(0, 'La tasa de inflación no puede ser negativa')
-    .max(100, 'La tasa de inflación no puede exceder 100%')
-    .refine(val => Number.isFinite(val), 'La tasa de inflación debe ser un número válido'),
-  
-  years: z
-    .number()
-    .min(0, 'El número de años no puede ser negativo')
-    .max(100, 'El número de años no puede exceder 100')
-    .refine(val => Number.isFinite(val), 'El número de años debe ser un número válido'),
-  
-  granularity: z
-    .enum(['none', 'yearly', 'quarterly'], {
-      errorMap: () => ({ message: 'La granularidad debe ser: none, yearly o quarterly' })
-    })
-    .optional()
-    .default('none')
+const inflationEffectSchema = z.object({
+  amount_nominal: z.number().positive().max(999999999, 'El monto no puede exceder 999,999,999'),
+  inflation_rate: z.number().min(0).max(100, 'La tasa de inflación debe estar entre 0 y 100'),
+  years: z.number().min(0).max(100, 'Los años deben estar entre 0 y 100'),
+  granularity: z.enum(['none', 'yearly', 'quarterly']).default('none'),
 });
 
 /**
  * Valida los datos de entrada para el cálculo de inflación
  * @param {Object} data - Datos a validar
  * @returns {Object} Datos validados
- * @throws {Error} Error de validación con detalles
+ * @throws {Error} Si los datos son inválidos
  */
 export function validateInflationEffectData(data) {
   try {
     return inflationEffectSchema.parse(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessages = error.errors.map(err => ({
-        field: err.path.join('.'),
-        message: err.message,
-        code: err.code
-      }));
-      
-      throw new Error(`Datos de entrada inválidos: ${errorMessages.map(e => e.message).join(', ')}`);
+      const messages = error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', ');
+      throw new Error(`Datos de entrada inválidos: ${messages}`);
     }
     throw error;
   }
 }
 
 /**
- * Valida que un número sea válido para cálculos financieros
- * @param {any} value - Valor a validar
- * @param {string} fieldName - Nombre del campo para mensajes de error
- * @returns {number} Número validado
+ * Valida un número financiero
+ * @param {number} value - Valor a validar
+ * @param {string} fieldName - Nombre del campo
+ * @returns {number} Valor validado
  */
 export function validateFinancialNumber(value, fieldName) {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
+  if (typeof value !== 'number' || isNaN(value)) {
     throw new Error(`${fieldName} debe ser un número válido`);
   }
-  
   if (value < 0) {
     throw new Error(`${fieldName} no puede ser negativo`);
   }
-  
   return value;
 }
 
 /**
- * Valida que un porcentaje esté en el rango válido
- * @param {number} percentage - Porcentaje a validar
- * @returns {number} Porcentaje validado
+ * Valida un porcentaje
+ * @param {number} value - Valor a validar
+ * @returns {number} Valor validado
  */
-export function validatePercentage(percentage) {
-  validateFinancialNumber(percentage, 'El porcentaje');
-  
-  if (percentage > 100) {
-    throw new Error('El porcentaje no puede exceder 100%');
+export function validatePercentage(value) {
+  if (typeof value !== 'number' || isNaN(value)) {
+    throw new Error('El porcentaje debe ser un número válido');
   }
-  
-  return percentage;
+  if (value < 0 || value > 100) {
+    throw new Error('El porcentaje debe estar entre 0 y 100');
+  }
+  return value;
 }
 
 /**
- * Valida que un monto monetario sea válido
- * @param {number} amount - Monto a validar
- * @returns {number} Monto validado
+ * Valida un monto monetario
+ * @param {number} value - Valor a validar
+ * @returns {number} Valor validado
  */
-export function validateMonetaryAmount(amount) {
-  validateFinancialNumber(amount, 'El monto');
-  
-  if (amount <= 0) {
-    throw new Error('El monto debe ser mayor a cero');
+export function validateMonetaryAmount(value) {
+  if (typeof value !== 'number' || isNaN(value)) {
+    throw new Error('El monto debe ser un número válido');
   }
-  
-  if (amount > 999999999) {
+  if (value <= 0) {
+    throw new Error('El monto debe ser mayor a 0');
+  }
+  if (value > 999999999) {
     throw new Error('El monto no puede exceder 999,999,999');
   }
-  
-  return amount;
+  return value;
 }
 
 /**
- * Valida que el número de años sea válido
- * @param {number} years - Años a validar
- * @returns {number} Años validados
+ * Valida años
+ * @param {number} value - Valor a validar
+ * @returns {number} Valor validado
  */
-export function validateYears(years) {
-  validateFinancialNumber(years, 'El número de años');
-  
-  if (years > 100) {
-    throw new Error('El número de años no puede exceder 100');
+export function validateYears(value) {
+  if (typeof value !== 'number' || isNaN(value)) {
+    throw new Error('Los años deben ser un número válido');
   }
-  
-  return years;
+  if (value < 0) {
+    throw new Error('Los años no pueden ser negativos');
+  }
+  if (value > 100) {
+    throw new Error('Los años no pueden exceder 100');
+  }
+  return value;
 }
 
 /**
- * Sanitiza y valida datos de entrada del formulario web
+ * Sanitiza datos de formulario (convierte strings a números)
  * @param {Object} formData - Datos del formulario
- * @returns {Object} Datos sanitizados y validados
+ * @returns {Object} Datos sanitizados
  */
 export function sanitizeFormData(formData) {
-  const sanitized = {
+  return {
     amount_nominal: parseFloat(formData.amount_nominal),
     inflation_rate: parseFloat(formData.inflation_rate),
     years: parseFloat(formData.years),
-    granularity: formData.granularity || 'none'
+    granularity: formData.granularity || 'none',
   };
-  
-  return validateInflationEffectData(sanitized);
 }
