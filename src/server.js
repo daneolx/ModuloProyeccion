@@ -20,12 +20,7 @@ import { testConnection } from './persistence/db.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Cargar variables de entorno
-dotenv.config(
-  {
-    path: path.join(__dirname, '../.env')
-  },
-);
-// console.log('Cargando variables de entorno desde:', path.join(__dirname, '../.env'));
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
