@@ -6,16 +6,16 @@
 }
 
 :root {
-    --primary-color: #2563eb;
-    --primary-dark: #1d4ed8;
+    --primary-color: #4c80f0;
+    --primary-dark: #1949ce;
     --secondary-color: #64748b;
     --success-color: #10b981;
     --warning-color: #f59e0b;
     --danger-color: #ef4444;
-    --background-color: #f8fafc;
+    --background-color: #c9c9c9;
     --surface-color: #ffffff;
     --text-primary: #1e293b;
-    --text-secondary: #64748b;
+    --text-secondary: #494e55;
     --border-color: #e2e8f0;
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -42,12 +42,20 @@ body {
 /* Header */
 .header {
     text-align: center;
-    padding: 2rem 0;
+    /* padding: 2rem 0; */
     background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
     color: white;
     margin-bottom: 2rem;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
+    overflow: hidden;
+}
+
+.header-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .header h1 {
@@ -79,6 +87,7 @@ body {
 /* Form Section */
 .form-section {
     background: var(--surface-color);
+    background-color: #f0f0f0;
     padding: 2rem;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
@@ -278,7 +287,8 @@ select:focus {
 }
 
 .summary-card {
-    background: var(--background-color);
+    /* background: var(--background-color); */
+    background-color: #f0f0f0;
     padding: 1.5rem;
     border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
@@ -443,6 +453,7 @@ select:focus {
 /* Footer */
 .footer {
     background: var(--surface-color);
+    background-color: #f0f0f0;
     padding: 2rem 0;
     border-top: 1px solid var(--border-color);
     margin-top: 3rem;
