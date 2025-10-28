@@ -363,10 +363,12 @@ class InflationCalculator {
 }
 
 // Funciones globales para uso en HTML
+// eslint-disable-next-line no-unused-vars
 function hideError() {
     window.inflationCalculator.hideError();
 }
 
+// eslint-disable-next-line no-unused-vars
 function showExample() {
     window.inflationCalculator.loadExampleData();
     

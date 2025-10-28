@@ -20,10 +20,8 @@ CREATE TABLE IF NOT EXISTS inflation_queries (
 -- Índices para mejorar el rendimiento de las consultas
 CREATE INDEX IF NOT EXISTS idx_inflation_queries_created_at 
     ON inflation_queries(created_at DESC);
-
 CREATE INDEX IF NOT EXISTS idx_inflation_queries_amount_nominal 
     ON inflation_queries(amount_nominal);
-
 CREATE INDEX IF NOT EXISTS idx_inflation_queries_inflation_rate 
     ON inflation_queries(inflation_rate);
 
@@ -41,4 +39,3 @@ CREATE TABLE IF NOT EXISTS query_statistics (
 -- Índice para la tabla de estadísticas
 CREATE INDEX IF NOT EXISTS idx_statistics_date 
     ON query_statistics(date DESC);
-

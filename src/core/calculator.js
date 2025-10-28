@@ -1,12 +1,12 @@
 /**
- * Módulo core para cálculos de inflación sobre ahorro
- * Funciones puras y testables para el cálculo del efecto de la inflación
+ * Módulo de cálculo del efecto de la inflación sobre el ahorro
+ * Contiene funciones puras para realizar cálculos financieros
  */
 
 /**
- * Calcula el factor de descuento por inflación
- * @param {number} inflationRate - Tasa de inflación anual en decimal (ej: 0.065 para 6.5%)
- * @param {number} years - Número de años (puede ser fraccional)
+ * Calcula el factor de descuento acumulado por inflación
+ * @param {number} inflationRate - Tasa de inflación en decimal (ej: 0.065 para 6.5%)
+ * @param {number} years - Número de años
  * @returns {number} Factor de descuento
  */
 export function calculateDiscountFactor(inflationRate, years) {
@@ -14,32 +14,30 @@ export function calculateDiscountFactor(inflationRate, years) {
     throw new Error('La tasa de inflación no puede ser negativa');
   }
   if (years < 0) {
-    throw new Error('El número de años no puede ser negativo');
+    throw new Error('Los años no pueden ser negativos');
   }
-  
   return Math.pow(1 + inflationRate, years);
 }
 
 /**
- * Calcula el valor real final del ahorro
+ * Calcula el valor real del ahorro ajustado por inflación
  * @param {number} nominalAmount - Monto nominal inicial
- * @param {number} inflationRate - Tasa de inflación anual en decimal
+ * @param {number} inflationRate - Tasa de inflación en decimal
  * @param {number} years - Número de años
- * @returns {number} Valor real final
+ * @returns {number} Valor real ajustado
  */
 export function calculateRealValue(nominalAmount, inflationRate, years) {
   if (nominalAmount <= 0) {
-    throw new Error('El monto nominal debe ser mayor a cero');
+    throw new Error('El monto nominal debe ser mayor a 0');
   }
-  
   const discountFactor = calculateDiscountFactor(inflationRate, years);
   return nominalAmount / discountFactor;
 }
 
 /**
- * Calcula la pérdida absoluta por inflación
+ * Calcula la pérdida absoluta de poder adquisitivo
  * @param {number} nominalAmount - Monto nominal inicial
- * @param {number} realValue - Valor real final
+ * @param {number} realValue - Valor real ajustado
  * @returns {number} Pérdida absoluta
  */
 export function calculateAbsoluteLoss(nominalAmount, realValue) {
@@ -47,86 +45,93 @@ export function calculateAbsoluteLoss(nominalAmount, realValue) {
 }
 
 /**
- * Calcula la pérdida porcentual acumulada
- * @param {number} inflationRate - Tasa de inflación anual en decimal
+ * Calcula el porcentaje de pérdida de poder adquisitivo
+ * @param {number} inflationRate - Tasa de inflación en decimal
  * @param {number} years - Número de años
- * @returns {number} Pérdida porcentual (ej: 0.1744 para 17.44%)
+ * @returns {number} Porcentaje de pérdida (en decimal)
  */
 export function calculateLossPercentage(inflationRate, years) {
   if (inflationRate < 0) {
     throw new Error('La tasa de inflación no puede ser negativa');
   }
   if (years < 0) {
-    throw new Error('El número de años no puede ser negativo');
+    throw new Error('Los años no pueden ser negativos');
   }
-  
-  return 1 - (1 / Math.pow(1 + inflationRate, years));
+  const discountFactor = calculateDiscountFactor(inflationRate, years);
+  return 1 - (1 / discountFactor);
 }
 
 /**
- * Genera una serie temporal de valores reales y pérdidas
+ * Genera una serie temporal de valores ajustados por inflación
  * @param {number} nominalAmount - Monto nominal inicial
- * @param {number} inflationRate - Tasa de inflación anual en decimal
+ * @param {number} inflationRate - Tasa de inflación en decimal
  * @param {number} years - Número de años
  * @param {string} granularity - Granularidad: 'yearly' o 'quarterly'
- * @returns {Array} Array de objetos con valores por período
+ * @returns {Array} Serie temporal con valores por período
  */
-export function generateTimeSeries(nominalAmount, inflationRate, years, granularity = 'yearly') {
+export function generateTimeSeries(nominalAmount, inflationRate, years, granularity) {
   if (nominalAmount <= 0) {
-    throw new Error('El monto nominal debe ser mayor a cero');
+    throw new Error('El monto nominal debe ser mayor a 0');
   }
-  
+
   const series = [];
-  const periods = granularity === 'quarterly' ? Math.ceil(years * 4) : Math.ceil(years);
-  const periodLength = granularity === 'quarterly' ? 0.25 : 1;
-  
+  let step = 1; // Anual por defecto
+  let periods = Math.floor(years);
+
+  if (granularity === 'quarterly') {
+    step = 0.25;
+    periods = Math.floor(years / step);
+  }
+
   for (let i = 1; i <= periods; i++) {
-    const currentYears = Math.min(i * periodLength, years);
+    const currentYears = i * step;
     const realValue = calculateRealValue(nominalAmount, inflationRate, currentYears);
+    const absoluteLoss = calculateAbsoluteLoss(nominalAmount, realValue);
     const lossPercent = calculateLossPercentage(inflationRate, currentYears);
-    
+
     series.push({
-      t: i,
+      period: i,
       years: currentYears,
-      real_value: Math.round(realValue * 100) / 100,
-      loss_percent: Math.round(lossPercent * 10000) / 100 // Redondeo a 2 decimales
+      real_value: parseFloat(realValue.toFixed(2)),
+      absolute_loss: parseFloat(absoluteLoss.toFixed(2)),
+      loss_percent: parseFloat((lossPercent * 100).toFixed(2)),
     });
   }
-  
+
   return series;
 }
 
 /**
- * Función principal que calcula todas las métricas de inflación
+ * Calcula el efecto completo de la inflación sobre el ahorro
  * @param {Object} params - Parámetros de entrada
  * @param {number} params.amount_nominal - Monto nominal inicial
- * @param {number} params.inflation_rate - Tasa de inflación anual en porcentaje (ej: 6.5)
+ * @param {number} params.inflation_rate - Tasa de inflación anual en porcentaje
  * @param {number} params.years - Número de años
- * @param {string} params.granularity - Granularidad opcional: 'none', 'yearly', 'quarterly'
- * @returns {Object} Resultado completo con todas las métricas
+ * @param {string} params.granularity - Granularidad: 'none', 'yearly' o 'quarterly'
+ * @returns {Object} Resultado con métricas de inflación
  */
-export function calculateInflationEffect({ amount_nominal, inflation_rate, years, granularity = 'none' }) {
+export function calculateInflationEffect({ amount_nominal, inflation_rate, years, granularity }) {
   // Convertir tasa de porcentaje a decimal
   const inflationRateDecimal = inflation_rate / 100;
-  
+
   // Calcular métricas principales
   const realValue = calculateRealValue(amount_nominal, inflationRateDecimal, years);
   const absoluteLoss = calculateAbsoluteLoss(amount_nominal, realValue);
   const lossPercent = calculateLossPercentage(inflationRateDecimal, years);
-  
+
   const result = {
-    amount_nominal: amount_nominal,
-    inflation_rate: inflation_rate,
-    years: years,
-    real_value: Math.round(realValue * 100) / 100,
-    absolute_loss: Math.round(absoluteLoss * 100) / 100,
-    loss_percent: Math.round(lossPercent * 10000) / 100 // Redondeo a 2 decimales
+    amount_nominal,
+    inflation_rate,
+    years,
+    real_value: parseFloat(realValue.toFixed(2)),
+    absolute_loss: parseFloat(absoluteLoss.toFixed(2)),
+    loss_percent: parseFloat((lossPercent * 100).toFixed(2)),
   };
-  
-  // Agregar serie temporal si se solicita
+
+  // Generar serie temporal si se solicita
   if (granularity !== 'none') {
     result.series = generateTimeSeries(amount_nominal, inflationRateDecimal, years, granularity);
   }
-  
+
   return result;
 }
