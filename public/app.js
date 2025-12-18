@@ -15,20 +15,30 @@ class InflationCalculator {
         this.treaValue = document.getElementById('trea-value');
         
         this.institutions = [];
-        this.loadInstitutions();
+        this.institutionsLoaded = false;
         this.initializeEventListeners();
-        this.loadExampleData();
+        this.loadInstitutions().then(() => {
+            this.loadExampleData();
+        });
     }
 
     async loadInstitutions() {
         try {
             const response = await fetch('/api/v1/sbs/rates');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const result = await response.json();
-            if (result.success) {
+            if (result.success && result.data && result.data.institutions) {
                 this.institutions = result.data.institutions || [];
+                this.institutionsLoaded = true;
+                console.log('✅ Instituciones cargadas:', this.institutions.length);
+            } else {
+                console.warn('⚠️ No se pudieron cargar las instituciones:', result);
             }
         } catch (error) {
-            console.error('Error al cargar instituciones:', error);
+            console.error('❌ Error al cargar instituciones:', error);
+            this.institutionsLoaded = false;
         }
     }
 
@@ -53,28 +63,65 @@ class InflationCalculator {
         const institutionSelect = this.institutionSelect;
         
         // Limpiar opciones anteriores
-        institutionSelect.innerHTML = '<option value="">Selecciona una entidad financiera</option>';
+        institutionSelect.innerHTML = '<option value="">Cargando entidades financieras...</option>';
+        institutionSelect.disabled = true;
         this.treaDisplay.style.display = 'none';
         
         if (!accountType) {
+            institutionSelect.innerHTML = '<option value="">Primero selecciona el tipo de cuenta</option>';
+            institutionSelect.disabled = true;
             return;
         }
         
-        // Cargar instituciones para este tipo de cuenta
+        // Cargar instituciones - usar las ya cargadas o cargar de nuevo
         try {
-            const response = await fetch('/api/v1/sbs/rates');
-            const result = await response.json();
+            let institutions = [];
             
-            if (result.success && result.data.institutions) {
-                result.data.institutions.forEach(institution => {
+            if (this.institutionsLoaded && this.institutions.length > 0) {
+                // Usar instituciones ya cargadas
+                institutions = this.institutions;
+                console.log('Usando instituciones en caché:', institutions.length);
+            } else {
+                // Cargar instituciones desde el servidor
+                console.log('Cargando instituciones desde servidor...');
+                const response = await fetch('/api/v1/sbs/rates');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (result.success && result.data && result.data.institutions) {
+                    institutions = result.data.institutions;
+                    this.institutions = institutions;
+                    this.institutionsLoaded = true;
+                    console.log('Instituciones cargadas:', institutions.length);
+                } else {
+                    throw new Error('No se pudieron obtener las instituciones');
+                }
+            }
+            
+            // Limpiar y poblar el select
+            institutionSelect.innerHTML = '<option value="">Selecciona una entidad financiera</option>';
+            
+            if (institutions.length > 0) {
+                institutions.forEach(institution => {
                     const option = document.createElement('option');
                     option.value = institution.id;
                     option.textContent = institution.name;
                     institutionSelect.appendChild(option);
                 });
+                institutionSelect.disabled = false;
+                console.log('✅ Select de instituciones actualizado');
+            } else {
+                institutionSelect.innerHTML = '<option value="">No hay instituciones disponibles</option>';
+                institutionSelect.disabled = true;
             }
         } catch (error) {
-            console.error('Error al cargar instituciones:', error);
+            console.error('❌ Error al cargar instituciones:', error);
+            institutionSelect.innerHTML = '<option value="">Error al cargar instituciones</option>';
+            institutionSelect.disabled = true;
         }
     }
 
@@ -87,20 +134,36 @@ class InflationCalculator {
             return;
         }
         
+        // Mostrar loading en TREA
+        this.treaValue.textContent = 'Cargando...';
+        this.treaDisplay.style.display = 'block';
+        
         // Obtener TREA
         try {
-            const response = await fetch(`/api/v1/sbs/rates?account_type=${accountType}&institution=${institutionId}`);
+            const url = `/api/v1/sbs/rates?account_type=${encodeURIComponent(accountType)}&institution=${encodeURIComponent(institutionId)}`;
+            console.log('Obteniendo TREA desde:', url);
+            
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const result = await response.json();
             
-            if (result.success && result.data.trea_rate !== null && result.data.trea_rate !== undefined) {
+            if (result.success && result.data && result.data.trea_rate !== null && result.data.trea_rate !== undefined) {
                 this.treaValue.textContent = `${result.data.trea_rate.toFixed(2)}%`;
                 this.treaDisplay.style.display = 'block';
+                console.log('✅ TREA obtenida:', result.data.trea_rate);
             } else {
-                this.treaDisplay.style.display = 'none';
+                console.warn('⚠️ TREA no disponible:', result);
+                this.treaValue.textContent = 'N/A';
+                this.treaDisplay.style.display = 'block';
             }
         } catch (error) {
-            console.error('Error al obtener TREA:', error);
-            this.treaDisplay.style.display = 'none';
+            console.error('❌ Error al obtener TREA:', error);
+            this.treaValue.textContent = 'Error';
+            this.treaDisplay.style.display = 'block';
         }
     }
 
@@ -559,14 +622,45 @@ function showExample() {
 }
 
 // Inicializar la aplicación cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', () => {
-    window.inflationCalculator = new InflationCalculator();
+function initializeApp() {
+    // Verificar que todos los elementos necesarios existan
+    const requiredElements = [
+        'inflationForm',
+        'account_type',
+        'institution',
+        'trea-display',
+        'trea-value'
+    ];
     
-    // Mostrar información de la API en consola
-    console.log('💰 Módulo de Efecto de la Inflación sobre el Ahorro');
-    console.log('📖 API disponible en: /api/v1/info');
-    console.log('🚀 Desarrollado por: Anibal Huaman, Karen Medrano, David Cantorín, Sulmairy Garcia, Diego Arrieta');
-});
+    const missingElements = requiredElements.filter(id => !document.getElementById(id));
+    
+    if (missingElements.length > 0) {
+        console.error('❌ Elementos faltantes en el DOM:', missingElements);
+        // Reintentar después de un breve delay
+        setTimeout(initializeApp, 100);
+        return;
+    }
+    
+    try {
+        window.inflationCalculator = new InflationCalculator();
+        
+        // Mostrar información de la API en consola
+        console.log('💰 Módulo de Efecto de la Inflación sobre el Ahorro');
+        console.log('📖 API disponible en: /api/v1/info');
+        console.log('🚀 Desarrollado por: Anibal Huaman, Karen Medrano, David Cantorín, Sulmairy Garcia, Diego Arrieta');
+        console.log('✅ Aplicación inicializada correctamente');
+    } catch (error) {
+        console.error('❌ Error al inicializar la aplicación:', error);
+    }
+}
+
+// Inicializar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    // DOM ya está listo
+    initializeApp();
+}
 
 // Manejo de errores globales
 window.addEventListener('error', (event) => {

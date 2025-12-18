@@ -218,6 +218,8 @@ export async function getSBSRatesController(req, res) {
       const institutionInfo = getInstitutionInfo(institution);
       const accountTypeInfo = getAccountTypeInfo(account_type);
       
+      console.log(`TREA solicitada: account_type=${account_type}, institution=${institution}, trea=${trea}`);
+      
       return res.status(200).json({
         success: true,
         data: {
@@ -229,23 +231,28 @@ export async function getSBSRatesController(req, res) {
     }
     
     // Retornar toda la información disponible
+    const allInstitutions = getAllInstitutions();
+    console.log(`Instituciones solicitadas: ${allInstitutions.length} encontradas`);
+    
     res.status(200).json({
       success: true,
       data: {
         account_types: Object.values(accountTypes),
-        institutions: getAllInstitutions(),
+        institutions: allInstitutions,
         rates: {
           // Retornar estructura de tasas (sin valores específicos por seguridad)
           available_account_types: Object.keys(accountTypes),
-          available_institutions: getAllInstitutions().map(inst => inst.id)
+          available_institutions: allInstitutions.map(inst => inst.id)
         }
       }
     });
   } catch (error) {
     console.error('Error al obtener tasas SBS:', error.message);
+    console.error('Stack:', error.stack);
     res.status(500).json({
       success: false,
       error: 'Error al obtener información de tasas',
+      message: error.message,
       timestamp: new Date().toISOString()
     });
   }
