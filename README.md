@@ -1,313 +1,199 @@
-# 💰 Módulo de Efecto de la Inflación sobre el Ahorro
+# 💰 Calculadora de Inflación Inteligente
 
-Una aplicación web desarrollada en Node.js que calcula el impacto de la inflación en el poder adquisitivo del ahorro personal.
+Aplicación web que calcula el impacto real de la inflación en tus ahorros, integrando tasas de interés (TREA) de la Superintendencia de Banca, Seguros y AFP (SBS) del Perú.
 
 ## 📋 Descripción
 
-Este módulo permite calcular:
-- **Valor real final** del ahorro considerando la inflación
-- **Pérdida absoluta** en términos monetarios
-- **Pérdida porcentual acumulada** por efecto de la inflación
-- **Serie temporal** opcional (anual o trimestral) del deterioro del poder adquisitivo
+Herramienta financiera que permite:
+- Calcular el **valor real final** del ahorro considerando inflación
+- Integrar **tasas TREA** de diferentes entidades financieras (SBS)
+- Visualizar **pérdida absoluta y porcentual** del poder adquisitivo
+- Analizar **evolución temporal** con gráficos interactivos
+- Comparar escenarios con y sin interés
 
-## 📸 Captura de Pantalla
+## 🚀 Características Principales
 
-![Screenshot de la Aplicación](public/static/img/screenshot.png)
+- ✅ **Integración SBS**: Selección de tipo de cuenta y entidad financiera con tasas TREA
+- ✅ **Cálculos Avanzados**: Considera inflación e interés para análisis neto preciso
+- ✅ **Diseño Bancario**: Interfaz profesional con estilo corporativo
+- ✅ **Totalmente Responsivo**: Diseño adaptativo para móvil, tablet y desktop
+- ✅ **API REST**: Endpoints documentados con validación robusta (Zod)
+- ✅ **Base de Datos**: MongoDB con historial de consultas y estadísticas
+- ✅ **Seguridad**: Helmet, CORS, rate limiting y validación de datos
 
-*Interfaz principal del Módulo de Efecto de la Inflación sobre el Ahorro*
-
-## 🚀 Características
-
-- ✅ **API REST** con validación robusta usando Zod
-- ✅ **Interfaz web moderna** y responsiva
-- ✅ **Cálculos precisos** con manejo de años fraccionales
-- ✅ **Tests completos** con cobertura ≥80% en módulo core
-- ✅ **Seguridad** con Helmet, CORS y rate limiting
-- ✅ **Documentación** completa de la API
-
-## 🛠️ Tecnologías Utilizadas
+## 🛠️ Stack Tecnológico
 
 ### Backend
-- **Node.js 20 LTS** - Runtime de JavaScript
-- **Express.js** - Framework web
-- **PostgreSQL** - Base de datos relacional
-- **Zod** - Validación de esquemas
-- **Vitest** - Framework de testing
-- **Supertest** - Testing de APIs
-
-### Base de Datos
-- **MongoDB** - Base de datos NoSQL con Mongoose ODM
-- **Mongoose** - Object Data Modeling para MongoDB
+- **Node.js 20 LTS** + **Express.js**
+- **MongoDB** + **Mongoose ODM**
+- **Zod** para validación
+- **Vitest** para testing
 
 ### Frontend
-- **HTML5** - Estructura semántica
-- **CSS3** - Estilos modernos con variables CSS
-- **JavaScript ES2022** - Funcionalidad interactiva
-- **Tailwind CSS** - Framework de diseño responsivo (CDN)
-- **Canvas API** - Gráficos de evolución temporal
+- **HTML5** semántico
+- **CSS3** con variables y diseño adaptativo
+- **JavaScript ES2022** (vanilla)
+- **Tailwind CSS** (CDN) para utilidades
+- **Canvas API** para gráficos
 
-### Herramientas de Desarrollo
-- **ESLint** - Linting de código
-- **Prettier** - Formateo de código
-- **Nodemon** - Desarrollo con recarga automática
+### Seguridad y Herramientas
+- **Helmet**, **CORS**, **Rate Limiting**
+- **ESLint**, **Prettier**, **Nodemon**
 
-## 📦 Instalación
+## 📦 Instalación Rápida
 
 ### Prerrequisitos
-- Node.js 20 LTS o superior
-- npm o yarn
+- Node.js 20+ y npm
 - MongoDB (local o MongoDB Atlas)
 
-### Pasos de instalación
+### Pasos
 
-1. **Clonar el repositorio**
+1. **Clonar e instalar**
 ```bash
-git clone <url-del-repositorio>
-cd modulo-inflacion-ahorro
-```
-
-2. **Instalar dependencias**
-```bash
+git clone <url-repositorio>
+cd ModuloProyeccion
 npm install
 ```
 
-3. **Configurar variables de entorno**
+2. **Configurar variables de entorno**
 ```bash
-# Copiar archivo de ejemplo
-cp .env.example .env
-
-# Editar .env con tus credenciales de MongoDB
-# Para MongoDB local:
+# Crear archivo .env
 MONGODB_URI=mongodb://localhost:27017/inflacion_ahorro
-
-# Para MongoDB Atlas:
-MONGODB_URI=mongodb+srv://usuario:password@cluster.mongodb.net/inflacion_ahorro
+# O para MongoDB Atlas:
+# MONGODB_URI=mongodb+srv://usuario:password@cluster.mongodb.net/inflacion_ahorro
+PORT=3000
+NODE_ENV=development
 ```
 
-4. **Iniciar MongoDB** (si usas instalación local)
+3. **Iniciar aplicación**
 ```bash
-# Windows
-mongod
-
-# macOS/Linux
-brew services start mongodb-community
-# o
-sudo systemctl start mongod
+npm run dev    # Desarrollo con recarga automática
+npm start      # Producción
 ```
 
-5. **Ejecutar en modo desarrollo**
-```bash
-npm run dev
-```
-
-6. **Acceder a la aplicación**
+4. **Acceder**
 ```
 http://localhost:3000
 ```
 
-## 🧪 Testing
+## 📊 API Endpoints
 
-### Ejecutar todos los tests
-```bash
-npm test
-```
+### POST `/api/v1/inflation/effect`
+Calcula el efecto de la inflación sobre un ahorro.
 
-### Ejecutar tests con cobertura
-```bash
-npm run test:coverage
-```
-
-### Ejecutar tests específicos
-```bash
-# Tests del módulo core
-npm test src/core/
-
-# Tests de API
-npm test src/api/
-```
-
-## 📊 API Documentation
-
-### Endpoint Principal
-
-**POST** `/api/v1/inflation/effect`
-
-Calcula el efecto de la inflación sobre un monto de ahorro.
-
-#### Request Body
+**Body:**
 ```json
 {
-  "amount_nominal": 10000.0,
+  "amount_nominal": 10000,
   "inflation_rate": 6.5,
   "years": 3,
-  "granularity": "yearly"
+  "granularity": "yearly",
+  "account_type": "caja_ahorro",    // Opcional
+  "institution": "bcp"              // Opcional
 }
 ```
 
-#### Parámetros
-- `amount_nominal` (number, requerido): Monto nominal inicial
-- `inflation_rate` (number, requerido): Tasa de inflación anual en %
-- `years` (number, requerido): Número de años (puede ser fraccional)
-- `granularity` (string, opcional): "none", "yearly", "quarterly"
-
-#### Response 200
+**Response:**
 ```json
 {
   "success": true,
   "data": {
-    "amount_nominal": 10000.0,
-    "inflation_rate": 6.5,
-    "years": 3,
     "real_value": 8256.11,
     "absolute_loss": 1743.89,
     "loss_percent": 17.44,
-    "series": [
-      {"t": 1, "years": 1, "real_value": 9389.61, "loss_percent": 6.10},
-      {"t": 2, "years": 2, "real_value": 8817.57, "loss_percent": 11.82},
-      {"t": 3, "years": 3, "real_value": 8256.11, "loss_percent": 17.44}
-    ]
-  },
-  "message": "Cálculo realizado exitosamente"
+    "trea_rate": 2.5,
+    "future_value_with_interest": 10768.90,
+    "net_rate": -4.0,
+    "series": [...]
+  }
 }
 ```
 
-#### Response 400 (Error de validación)
-```json
-{
-  "success": false,
-  "error": "Datos de entrada inválidos: El monto nominal debe ser mayor a cero",
-  "timestamp": "2025-01-XX..."
-}
-```
+### GET `/api/v1/sbs/rates`
+Obtiene información de tasas SBS (tipos de cuenta, entidades, TREA).
 
-### Endpoint de Información
+### GET `/api/v1/inflation/history`
+Historial de consultas con paginación.
 
-**GET** `/api/v1/info`
+### GET `/api/v1/inflation/statistics`
+Estadísticas agregadas de uso.
 
-Retorna información sobre la API y sus endpoints.
+### GET `/api/v1/info`
+Información de la API.
 
-## 🧮 Fórmulas Utilizadas
+## 🧪 Testing
 
-### Factor de Descuento
-```
-D = (1 + π)^t
-```
-Donde:
-- π = tasa de inflación anual en decimal
-- t = número de años
-
-### Valor Real Final
-```
-A_real = A0 / D
-```
-Donde:
-- A0 = monto nominal inicial
-- D = factor de descuento
-
-### Pérdida Absoluta
-```
-L_abs = A0 - A_real
-```
-
-### Pérdida Porcentual Acumulada
-```
-L_% = 1 - 1 / (1 + π)^t
+```bash
+npm test              # Ejecutar todos los tests
+npm run test:coverage # Tests con cobertura
 ```
 
 ## 📁 Estructura del Proyecto
 
 ```
-modulo-inflacion-ahorro/
+ModuloProyeccion/
 ├── src/
-│   ├── core/
-│   │   ├── calculator.js          # Funciones puras de cálculo
-│   │   └── calculator.test.js     # Tests del módulo core
-│   ├── domain/
-│   │   ├── validation.js          # Validaciones con Zod
-│   │   └── validation.test.js     # Tests de validación
-│   ├── api/
-│   │   ├── effect.controller.js  # Controlador de la API
-│   │   ├── routes.js              # Rutas Express
-│   │   └── effect.api.test.js     # Tests de API
-│   └── server.js                  # Servidor principal
+│   ├── api/              # Rutas y controladores
+│   ├── core/             # Lógica de cálculo
+│   ├── domain/           # Validación (Zod)
+│   ├── persistence/      # MongoDB y repositorio
+│   ├── data/             # Datos SBS
+│   └── server.js         # Servidor Express
 ├── public/
-│   ├── index.html                 # Interfaz web
-│   ├── styles.css                 # Estilos CSS
-│   └── app.js                     # JavaScript del frontend
-├── package.json                   # Dependencias y scripts
-├── .eslintrc.cjs                  # Configuración ESLint
-├── .prettierrc                    # Configuración Prettier
-├── vitest.config.js               # Configuración Vitest
-├── .gitignore                     # Archivos a ignorar
-└── README.md                      # Este archivo
+│   ├── index.html        # Interfaz principal
+│   ├── styles.css        # Estilos bancarios
+│   └── app.js           # Lógica frontend
+├── database/             # Documentación MongoDB
+└── package.json
 ```
 
-## 🔧 Scripts Disponibles
+## 🎨 Diseño
 
-```bash
-# Desarrollo
-npm run dev          # Ejecutar con nodemon
-npm start           # Ejecutar en producción
+- **Paleta**: Azul corporativo (#003d82, #0066cc)
+- **Tipografía**: Inter con diferentes pesos
+- **Responsive**: Mobile-first con 3 breakpoints
+- **Componentes**: Cards, formularios, gráficos Canvas
+- **Guía completa**: Ver `DESIGN_FIGMA.md`
 
-# Testing
-npm test            # Ejecutar tests
-npm run test:coverage # Tests con cobertura
+## 🌐 Despliegue
 
-# Calidad de código
-npm run lint        # Verificar código con ESLint
-npm run lint:fix    # Corregir errores de ESLint
-npm run format      # Formatear código con Prettier
-npm run format:check # Verificar formato
-```
+### Render (Configurado)
+- Variables de entorno: `MONGODB_URI`, `PORT`, `NODE_ENV`
+- Build command: `npm install`
+- Start command: `npm start`
 
-## 🌐 Despliegue en Producción
+## 📚 Documentación Adicional
 
-### Variables de Entorno
-```bash
-NODE_ENV=production
-PORT=3000
-```
+- **`INFORME_TECNICO.md`**: Informe completo del proyecto
+- **`DESIGN_FIGMA.md`**: Guía de diseño UX/UI
+- **`MIGRACION_MONGODB.md`**: Proceso de migración
+- **`database/README.md`**: Configuración MongoDB
 
-### Comandos de despliegue
-```bash
-# Instalar dependencias de producción
-npm ci --only=production
+## 👥 Equipo
 
-# Ejecutar tests
-npm test
+**Curso:** DESARROLLO DE APLICACIONES WEB Y MÓVILES  
+**Universidad Continental**
 
-# Iniciar aplicación
-npm start
-```
+- Anibal Huaman
+- Karen Medrano
+- David Cantorín
+- Sulmairy Garcia
+- Diego Arrieta
 
-### Configuración recomendada para AWS EC2
-- **Instancia**: t3.micro o t3.small
-- **Sistema operativo**: Ubuntu 22.04 LTS
-- **Proxy reverso**: Nginx
-- **Proceso**: PM2
-- **SSL**: Let's Encrypt o AWS Certificate Manager
-
-## 👥 Autores
-
-- **Anibal Huaman**
-- **Karen Medrano**
-- **David Cantorín**
-- **Sulmairy Garcia**
-- **Diego Arrieta**
-
-**Universidad Continental**  
-**Curso**: DESARROLLO DE APLICACIONES WEB Y MÓVILES  
-**Equipo**: Anibal Huaman, Karen Medrano, David Cantorín, Sulmairy Garcia, Diego Arrieta
-
-## 📋 Alcance Técnico del Curso
-
-Este proyecto cumple con los siguientes requisitos del curso:
+## ✅ Alcance Técnico Cumplido
 
 - ✅ **Front-end**: HTML, CSS, JavaScript, Tailwind CSS
 - ✅ **Back-end**: Node.js + Express
 - ✅ **Base de datos**: MongoDB con Mongoose
 - ✅ **Diseño responsivo**: Tailwind CSS + Media Queries
-- ✅ **Diseño UX/UI**: Guía completa en `DESIGN_FIGMA.md`
-- ✅ **Despliegue**: Render (configurado)
+- ✅ **Diseño UX/UI**: Guía en `DESIGN_FIGMA.md`
+- ✅ **Despliegue**: Render
 
-Para más detalles sobre el diseño, consultar `DESIGN_FIGMA.md`.
+## 📄 Licencia
+
+MIT
+
+---
+
+**Versión:** 1.0.0  
+**Última actualización:** Diciembre 2024
