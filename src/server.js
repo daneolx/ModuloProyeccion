@@ -13,7 +13,7 @@ import { fileURLToPath } from 'url';
 
 import apiRoutes from './api/routes.js';
 import { errorHandlerMiddleware } from './api/effect.controller.js';
-import { testConnection } from './persistence/db.js';
+import { connectDB, testConnection } from './persistence/db.mongodb.js';
 
 // Configuración para ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -120,26 +120,34 @@ const server = app.listen(PORT, async () => {
     console.log(`🏭 Modo: Producción`);
   }
   
-  // Probar conexión a PostgreSQL
-  await testConnection();
+  // Conectar a MongoDB
+  try {
+    await connectDB();
+    await testConnection();
+  } catch (error) {
+    console.error('❌ Error al conectar a MongoDB:', error.message);
+    console.error('⚠️ La aplicación continuará pero algunas funciones pueden no funcionar');
+  }
 });
 
 // Manejo graceful de cierre del servidor
-process.on('SIGTERM', () => {
-  console.log('🛑 Recibida señal SIGTERM, cerrando servidor...');
-  server.close(() => {
-    console.log('✅ Servidor cerrado correctamente');
+const gracefulShutdown = async (signal) => {
+  console.log(`🛑 Recibida señal ${signal}, cerrando servidor...`);
+  server.close(async () => {
+    console.log('✅ Servidor HTTP cerrado correctamente');
+    try {
+      const { disconnectDB } = await import('./persistence/db.mongodb.js');
+      await disconnectDB();
+      console.log('✅ Conexión a MongoDB cerrada correctamente');
+    } catch (error) {
+      console.error('⚠️ Error al cerrar MongoDB:', error.message);
+    }
     process.exit(0);
   });
-});
+};
 
-process.on('SIGINT', () => {
-  console.log('🛑 Recibida señal SIGINT, cerrando servidor...');
-  server.close(() => {
-    console.log('✅ Servidor cerrado correctamente');
-    process.exit(0);
-  });
-});
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Manejo de errores no capturados
 process.on('uncaughtException', (err) => {

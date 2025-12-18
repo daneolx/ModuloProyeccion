@@ -1,8 +1,9 @@
 /**
  * Repositorio para operaciones CRUD de consultas de inflación
+ * Migrado a MongoDB usando Mongoose
  */
 
-import { query } from './db.js';
+import InflationQuery from './models/InflationQuery.js';
 
 /**
  * Guarda una nueva consulta de inflación en la base de datos
@@ -23,17 +24,7 @@ export async function saveInflationQuery(queryData) {
     user_agent = null,
   } = queryData;
 
-  const sql = `
-    INSERT INTO inflation_queries (
-      amount_nominal, inflation_rate, years, granularity,
-      real_value, absolute_loss, loss_percent, series,
-      client_ip, user_agent
-    )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-    RETURNING *
-  `;
-
-  const params = [
+  const inflationQuery = new InflationQuery({
     amount_nominal,
     inflation_rate,
     years,
@@ -41,24 +32,31 @@ export async function saveInflationQuery(queryData) {
     real_value,
     absolute_loss,
     loss_percent,
-    series ? JSON.stringify(series) : null,
+    series,
     client_ip,
     user_agent,
-  ];
+  });
 
-  const result = await query(sql, params);
-  return result.rows[0];
+  const savedQuery = await inflationQuery.save();
+  return savedQuery.toJSON();
 }
 
 /**
  * Obtiene una consulta por ID
- * @param {number} id - ID de la consulta
+ * @param {string} id - ID de la consulta (ObjectId de MongoDB)
  * @returns {Promise<Object|null>} Datos de la consulta o null
  */
 export async function getInflationQueryById(id) {
-  const sql = 'SELECT * FROM inflation_queries WHERE id = $1';
-  const result = await query(sql, [id]);
-  return result.rows[0] || null;
+  try {
+    const query = await InflationQuery.findById(id);
+    return query ? query.toJSON() : null;
+  } catch (error) {
+    // Si el ID no es válido, retornar null
+    if (error.name === 'CastError') {
+      return null;
+    }
+    throw error;
+  }
 }
 
 /**
@@ -69,22 +67,20 @@ export async function getInflationQueryById(id) {
  * @returns {Promise<Object>} Resultados y total
  */
 export async function getAllInflationQueries({ limit = 50, offset = 0 } = {}) {
-  const countSql = 'SELECT COUNT(*) FROM inflation_queries';
-  const dataSql = `
-    SELECT * FROM inflation_queries
-    ORDER BY created_at DESC
-    LIMIT $1 OFFSET $2
-  `;
-
-  const [countResult, dataResult] = await Promise.all([
-    query(countSql),
-    query(dataSql, [limit, offset]),
+  const [data, total] = await Promise.all([
+    InflationQuery.find()
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .skip(offset)
+      .lean(),
+    InflationQuery.countDocuments(),
   ]);
 
-  const total = parseInt(countResult.rows[0].count, 10);
-
   return {
-    data: dataResult.rows,
+    data: data.map(item => {
+      const { _id, __v, ...rest } = item;
+      return { id: _id.toString(), ...rest };
+    }),
     total,
     limit,
     offset,
@@ -96,19 +92,28 @@ export async function getAllInflationQueries({ limit = 50, offset = 0 } = {}) {
  * @returns {Promise<Object>} Estadísticas agregadas
  */
 export async function getQueryStatistics() {
-  const sql = `
-    SELECT 
-      COUNT(*) as total_queries,
-      AVG(amount_nominal) as avg_amount_nominal,
-      AVG(inflation_rate) as avg_inflation_rate,
-      AVG(loss_percent) as avg_loss_percent,
-      MIN(created_at) as first_query,
-      MAX(created_at) as last_query
-    FROM inflation_queries
-  `;
+  const stats = await InflationQuery.aggregate([
+    {
+      $group: {
+        _id: null,
+        total_queries: { $sum: 1 },
+        avg_amount_nominal: { $avg: '$amount_nominal' },
+        avg_inflation_rate: { $avg: '$inflation_rate' },
+        avg_loss_percent: { $avg: '$loss_percent' },
+        first_query: { $min: '$createdAt' },
+        last_query: { $max: '$createdAt' },
+      },
+    },
+  ]);
 
-  const result = await query(sql);
-  return result.rows[0];
+  return stats[0] || {
+    total_queries: 0,
+    avg_amount_nominal: 0,
+    avg_inflation_rate: 0,
+    avg_loss_percent: 0,
+    first_query: null,
+    last_query: null,
+  };
 }
 
 /**
@@ -118,14 +123,19 @@ export async function getQueryStatistics() {
  * @returns {Promise<Array>} Array de consultas
  */
 export async function getQueriesByDateRange(startDate, endDate) {
-  const sql = `
-    SELECT * FROM inflation_queries
-    WHERE created_at BETWEEN $1 AND $2
-    ORDER BY created_at DESC
-  `;
+  const queries = await InflationQuery.find({
+    createdAt: {
+      $gte: startDate,
+      $lte: endDate,
+    },
+  })
+    .sort({ createdAt: -1 })
+    .lean();
 
-  const result = await query(sql, [startDate, endDate]);
-  return result.rows;
+  return queries.map(item => {
+    const { _id, __v, ...rest } = item;
+    return { id: _id.toString(), ...rest };
+  });
 }
 
 /**
@@ -134,13 +144,14 @@ export async function getQueriesByDateRange(startDate, endDate) {
  * @returns {Promise<number>} Número de consultas eliminadas
  */
 export async function deleteOldQueries(days = 90) {
-  const sql = `
-    DELETE FROM inflation_queries
-    WHERE created_at < NOW() - INTERVAL '${days} days'
-  `;
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
 
-  const result = await query(sql);
-  return result.rowCount;
+  const result = await InflationQuery.deleteMany({
+    createdAt: { $lt: cutoffDate },
+  });
+
+  return result.deletedCount;
 }
 
 /**
@@ -149,13 +160,14 @@ export async function deleteOldQueries(days = 90) {
  * @returns {Promise<Array>} Array de consultas
  */
 export async function getRecentQueries(limit = 10) {
-  const sql = `
-    SELECT * FROM inflation_queries
-    ORDER BY created_at DESC
-    LIMIT $1
-  `;
+  const queries = await InflationQuery.find()
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .lean();
 
-  const result = await query(sql, [limit]);
-  return result.rows;
+  return queries.map(item => {
+    const { _id, __v, ...rest } = item;
+    return { id: _id.toString(), ...rest };
+  });
 }
 

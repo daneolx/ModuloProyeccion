@@ -4,14 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Módulo de Efecto de la Inflación sobre el Ahorro</title>
+    <!-- Tailwind CSS CDN para diseño responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💰</text></svg>">
+    <script>
+        // Configuración personalizada de Tailwind
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="container">
         <header class="header">
             <div class="header-content">
+                <div class="course-badge">DESARROLLO DE APLICACIONES WEB Y MÓVILES</div>
                 <div class="header-icon">💰</div>
                 <h1>Módulo de Efecto de la Inflación sobre el Ahorro</h1>
                 <p class="subtitle">Calcula el impacto de la inflación en tu poder adquisitivo</p>
@@ -171,8 +186,24 @@
 
         <footer class="footer">
             <div class="footer-content">
-                <p>Desarrollado por: Anibal Huaman, Karen Medrano, David Cantorín, Sulmairy Garcia, Diego Arrieta</p>
-                <p>Universidad Continental - Construcción de Software</p>
+                <div class="footer-main">
+                    <p class="footer-title">Universidad Continental</p>
+                    <p class="footer-subtitle">Desarrollo de Aplicaciones Web y Móviles</p>
+                </div>
+                <div class="footer-team">
+                    <p class="team-label">Equipo de desarrollo</p>
+                    <div class="team-members">
+                        <span class="team-member">Anibal Huaman</span>
+                        <span class="team-separator">•</span>
+                        <span class="team-member">Karen Medrano</span>
+                        <span class="team-separator">•</span>
+                        <span class="team-member">David Cantorín</span>
+                        <span class="team-separator">•</span>
+                        <span class="team-member">Sulmairy Garcia</span>
+                        <span class="team-separator">•</span>
+                        <span class="team-member">Diego Arrieta</span>
+                    </div>
+                </div>
             </div>
         </footer>
     </div>

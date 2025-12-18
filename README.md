@@ -30,14 +30,20 @@ Este módulo permite calcular:
 ### Backend
 - **Node.js 20 LTS** - Runtime de JavaScript
 - **Express.js** - Framework web
+- **PostgreSQL** - Base de datos relacional
 - **Zod** - Validación de esquemas
 - **Vitest** - Framework de testing
 - **Supertest** - Testing de APIs
+
+### Base de Datos
+- **MongoDB** - Base de datos NoSQL con Mongoose ODM
+- **Mongoose** - Object Data Modeling para MongoDB
 
 ### Frontend
 - **HTML5** - Estructura semántica
 - **CSS3** - Estilos modernos con variables CSS
 - **JavaScript ES2022** - Funcionalidad interactiva
+- **Tailwind CSS** - Framework de diseño responsivo (CDN)
 - **Canvas API** - Gráficos de evolución temporal
 
 ### Herramientas de Desarrollo
@@ -50,6 +56,7 @@ Este módulo permite calcular:
 ### Prerrequisitos
 - Node.js 20 LTS o superior
 - npm o yarn
+- MongoDB (local o MongoDB Atlas)
 
 ### Pasos de instalación
 
@@ -64,12 +71,36 @@ cd modulo-inflacion-ahorro
 npm install
 ```
 
-3. **Ejecutar en modo desarrollo**
+3. **Configurar variables de entorno**
+```bash
+# Copiar archivo de ejemplo
+cp .env.example .env
+
+# Editar .env con tus credenciales de MongoDB
+# Para MongoDB local:
+MONGODB_URI=mongodb://localhost:27017/inflacion_ahorro
+
+# Para MongoDB Atlas:
+MONGODB_URI=mongodb+srv://usuario:password@cluster.mongodb.net/inflacion_ahorro
+```
+
+4. **Iniciar MongoDB** (si usas instalación local)
+```bash
+# Windows
+mongod
+
+# macOS/Linux
+brew services start mongodb-community
+# o
+sudo systemctl start mongod
+```
+
+5. **Ejecutar en modo desarrollo**
 ```bash
 npm run dev
 ```
 
-4. **Acceder a la aplicación**
+6. **Acceder a la aplicación**
 ```
 http://localhost:3000
 ```
@@ -264,6 +295,19 @@ npm start
 - **Sulmairy Garcia**
 - **Diego Arrieta**
 
-**Universidad Continental** - Escuela de Posgrado  
-**Curso**: PSMA01283 - Construcción de Software  
-**Profesor**: Mag. Joel Fernando Machado Vicente
+**Universidad Continental**  
+**Curso**: DESARROLLO DE APLICACIONES WEB Y MÓVILES  
+**Equipo**: Anibal Huaman, Karen Medrano, David Cantorín, Sulmairy Garcia, Diego Arrieta
+
+## 📋 Alcance Técnico del Curso
+
+Este proyecto cumple con los siguientes requisitos del curso:
+
+- ✅ **Front-end**: HTML, CSS, JavaScript, Tailwind CSS
+- ✅ **Back-end**: Node.js + Express
+- ✅ **Base de datos**: MongoDB con Mongoose
+- ✅ **Diseño responsivo**: Tailwind CSS + Media Queries
+- ✅ **Diseño UX/UI**: Guía completa en `DESIGN_FIGMA.md`
+- ✅ **Despliegue**: Render (configurado)
+
+Para más detalles sobre el diseño, consultar `DESIGN_FIGMA.md`.
