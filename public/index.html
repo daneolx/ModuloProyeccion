@@ -37,6 +37,33 @@
             <div class="form-section">
                 <form id="inflationForm" class="form">
                     <div class="form-group">
+                        <label for="account_type">Tipo de Cuenta</label>
+                        <select id="account_type" name="account_type" required>
+                            <option value="">Selecciona un tipo de cuenta</option>
+                            <option value="caja_ahorro">Caja de Ahorro</option>
+                            <option value="cuenta_ahorro">Cuenta de Ahorro</option>
+                            <option value="deposito_plazo">Depósito a Plazo Fijo</option>
+                        </select>
+                        <small class="help-text">Tipo de producto financiero según SBS</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="institution">Entidad Financiera</label>
+                        <select id="institution" name="institution" required>
+                            <option value="">Primero selecciona el tipo de cuenta</option>
+                        </select>
+                        <small class="help-text">Banco o financiera según tu selección</small>
+                    </div>
+
+                    <div class="form-group" id="trea-display" style="display: none;">
+                        <div class="trea-info">
+                            <span class="trea-label">TREA (Tasa de Rendimiento Efectiva Anual):</span>
+                            <span class="trea-value" id="trea-value">-</span>
+                        </div>
+                        <small class="help-text">Tasa de interés que ganarás con esta cuenta</small>
+                    </div>
+
+                    <div class="form-group">
                         <label for="amount_nominal">Monto Nominal Inicial</label>
                         <div class="input-group">
                             <span class="currency-symbol">S/</span>

@@ -9,19 +9,99 @@ class InflationCalculator {
         this.resultsSection = document.getElementById('resultsSection');
         this.loadingSection = document.getElementById('loadingSection');
         this.errorSection = document.getElementById('errorSection');
+        this.accountTypeSelect = document.getElementById('account_type');
+        this.institutionSelect = document.getElementById('institution');
+        this.treaDisplay = document.getElementById('trea-display');
+        this.treaValue = document.getElementById('trea-value');
         
+        this.institutions = [];
+        this.loadInstitutions();
         this.initializeEventListeners();
         this.loadExampleData();
     }
 
+    async loadInstitutions() {
+        try {
+            const response = await fetch('/api/v1/sbs/rates');
+            const result = await response.json();
+            if (result.success) {
+                this.institutions = result.data.institutions || [];
+            }
+        } catch (error) {
+            console.error('Error al cargar instituciones:', error);
+        }
+    }
+
     initializeEventListeners() {
         this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+        
+        // Event listener para cambio de tipo de cuenta
+        this.accountTypeSelect.addEventListener('change', (e) => this.handleAccountTypeChange(e));
+        
+        // Event listener para cambio de institución
+        this.institutionSelect.addEventListener('change', (e) => this.handleInstitutionChange(e));
         
         // Validación en tiempo real
         const inputs = this.form.querySelectorAll('input[type="number"]');
         inputs.forEach(input => {
             input.addEventListener('input', () => this.validateInput(input));
         });
+    }
+
+    async handleAccountTypeChange(event) {
+        const accountType = event.target.value;
+        const institutionSelect = this.institutionSelect;
+        
+        // Limpiar opciones anteriores
+        institutionSelect.innerHTML = '<option value="">Selecciona una entidad financiera</option>';
+        this.treaDisplay.style.display = 'none';
+        
+        if (!accountType) {
+            return;
+        }
+        
+        // Cargar instituciones para este tipo de cuenta
+        try {
+            const response = await fetch('/api/v1/sbs/rates');
+            const result = await response.json();
+            
+            if (result.success && result.data.institutions) {
+                result.data.institutions.forEach(institution => {
+                    const option = document.createElement('option');
+                    option.value = institution.id;
+                    option.textContent = institution.name;
+                    institutionSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error al cargar instituciones:', error);
+        }
+    }
+
+    async handleInstitutionChange(event) {
+        const institutionId = event.target.value;
+        const accountType = this.accountTypeSelect.value;
+        
+        if (!institutionId || !accountType) {
+            this.treaDisplay.style.display = 'none';
+            return;
+        }
+        
+        // Obtener TREA
+        try {
+            const response = await fetch(`/api/v1/sbs/rates?account_type=${accountType}&institution=${institutionId}`);
+            const result = await response.json();
+            
+            if (result.success && result.data.trea_rate !== null && result.data.trea_rate !== undefined) {
+                this.treaValue.textContent = `${result.data.trea_rate.toFixed(2)}%`;
+                this.treaDisplay.style.display = 'block';
+            } else {
+                this.treaDisplay.style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error al obtener TREA:', error);
+            this.treaDisplay.style.display = 'none';
+        }
     }
 
     validateInput(input) {
@@ -72,8 +152,17 @@ class InflationCalculator {
                 amount_nominal: parseFloat(formData.get('amount_nominal')),
                 inflation_rate: parseFloat(formData.get('inflation_rate')),
                 years: parseFloat(formData.get('years')),
-                granularity: formData.get('granularity') || 'none'
+                granularity: formData.get('granularity') || 'none',
+                account_type: formData.get('account_type') || undefined,
+                institution: formData.get('institution') || undefined
             };
+            
+            // Remover campos undefined
+            Object.keys(data).forEach(key => {
+                if (data[key] === undefined || data[key] === '') {
+                    delete data[key];
+                }
+            });
             
             // Validación básica del frontend
             this.validateFormData(data);
@@ -120,13 +209,18 @@ class InflationCalculator {
         document.getElementById('absoluteLoss').textContent = this.formatCurrency(data.absolute_loss);
         document.getElementById('lossPercent').textContent = `${data.loss_percent.toFixed(2)}%`;
         
+        // Mostrar información de cuenta si está disponible
+        if (data.institution_info && data.account_type_info) {
+            this.displayAccountInfo(data);
+        }
+        
         // Generar resumen
         this.generateSummary(data);
         
         // Mostrar serie temporal si existe
         if (data.series && data.series.length > 0) {
             this.displayTimeSeries(data.series);
-            this.createChart(data.series, data.amount_nominal);
+            this.createChart(data.series, data.amount_nominal, data.future_value_with_interest);
         } else {
             this.hideTimeSeries();
         }
@@ -134,31 +228,110 @@ class InflationCalculator {
         this.showResults();
     }
 
+    displayAccountInfo(data) {
+        // Buscar o crear sección de información de cuenta
+        let accountInfoSection = document.getElementById('accountInfoSection');
+        if (!accountInfoSection) {
+            accountInfoSection = document.createElement('div');
+            accountInfoSection.id = 'accountInfoSection';
+            accountInfoSection.className = 'account-info-card';
+            const resultsGrid = document.querySelector('.results-grid');
+            resultsGrid.parentNode.insertBefore(accountInfoSection, resultsGrid);
+        }
+        
+        const institution = data.institution_info;
+        const accountType = data.account_type_info;
+        const treaRate = data.trea_rate || 0;
+        
+        accountInfoSection.innerHTML = `
+            <div class="account-info-content">
+                <div class="account-info-header">
+                    <h3>📋 Información de la Cuenta Seleccionada</h3>
+                </div>
+                <div class="account-info-details">
+                    <div class="account-info-item">
+                        <span class="account-info-label">Tipo de Cuenta:</span>
+                        <span class="account-info-value">${accountType.name}</span>
+                    </div>
+                    <div class="account-info-item">
+                        <span class="account-info-label">Entidad Financiera:</span>
+                        <span class="account-info-value">${institution.name}</span>
+                    </div>
+                    <div class="account-info-item">
+                        <span class="account-info-label">TREA:</span>
+                        <span class="account-info-value trea-highlight">${treaRate.toFixed(2)}%</span>
+                    </div>
+                    ${data.future_value_with_interest ? `
+                    <div class="account-info-item">
+                        <span class="account-info-label">Valor Futuro con Interés:</span>
+                        <span class="account-info-value">${this.formatCurrency(data.future_value_with_interest)}</span>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        accountInfoSection.style.display = 'block';
+    }
+
     generateSummary(data) {
         const summaryElement = document.getElementById('summaryContent');
         const lossPercent = data.loss_percent;
         const realValue = data.real_value;
         const nominalAmount = data.amount_nominal;
+        const treaRate = data.trea_rate || 0;
         
         let summaryText = `
             <p><strong>Análisis realizado:</strong></p>
-            <p>Con una tasa de inflación del <strong>${data.inflation_rate}%</strong> anual durante <strong>${data.years}</strong> años, 
-            tu ahorro de <strong>${this.formatCurrency(nominalAmount)}</strong> tendrá un valor real de 
-            <strong>${this.formatCurrency(realValue)}</strong>.</p>
         `;
+        
+        if (treaRate > 0) {
+            summaryText += `
+                <p>Con una tasa de inflación del <strong>${data.inflation_rate}%</strong> anual y una TREA del <strong>${treaRate.toFixed(2)}%</strong> 
+                durante <strong>${data.years}</strong> años, tu ahorro de <strong>${this.formatCurrency(nominalAmount)}</strong> 
+                ${data.future_value_with_interest ? `crecerá a <strong>${this.formatCurrency(data.future_value_with_interest)}</strong> con interés, ` : ''}
+                pero tendrá un valor real de <strong>${this.formatCurrency(realValue)}</strong>.</p>
+            `;
+        } else {
+            summaryText += `
+                <p>Con una tasa de inflación del <strong>${data.inflation_rate}%</strong> anual durante <strong>${data.years}</strong> años, 
+                tu ahorro de <strong>${this.formatCurrency(nominalAmount)}</strong> tendrá un valor real de 
+                <strong>${this.formatCurrency(realValue)}</strong>.</p>
+            `;
+        }
         
         if (lossPercent > 0) {
             summaryText += `
-                <p>Esto representa una <strong>pérdida de poder adquisitivo del ${lossPercent.toFixed(2)}%</strong>, 
+                <p>Esto representa una <strong>pérdida neta de poder adquisitivo del ${lossPercent.toFixed(2)}%</strong>, 
                 equivalente a <strong>${this.formatCurrency(data.absolute_loss)}</strong> en términos reales.</p>
+            `;
+        } else if (treaRate > 0 && lossPercent === 0) {
+            summaryText += `
+                <p>La TREA del <strong>${treaRate.toFixed(2)}%</strong> compensa completamente la inflación. 
+                No hay pérdida de poder adquisitivo en este período.</p>
             `;
         } else {
             summaryText += `<p>No hay pérdida de poder adquisitivo en este período.</p>`;
         }
         
-        summaryText += `
-            <p><em>Nota: Este cálculo asume una tasa de inflación constante durante todo el período.</em></p>
-        `;
+        if (treaRate > 0) {
+            const netRate = data.inflation_rate - treaRate;
+            if (netRate > 0) {
+                summaryText += `
+                    <p><em>Nota: La tasa neta (inflación - TREA) es del ${netRate.toFixed(2)}%. 
+                    La TREA compensa parcialmente la inflación, reduciendo la pérdida de poder adquisitivo.</em></p>
+                `;
+            } else {
+                summaryText += `
+                    <p><em>Nota: La TREA del ${treaRate.toFixed(2)}% es mayor o igual a la inflación del ${data.inflation_rate}%. 
+                    Tu ahorro mantiene o aumenta su poder adquisitivo.</em></p>
+                `;
+            }
+        } else {
+            summaryText += `
+                <p><em>Nota: Este cálculo asume una tasa de inflación constante durante todo el período. 
+                Considera abrir una cuenta de ahorro con TREA para compensar parcialmente la inflación.</em></p>
+            `;
+        }
         
         summaryElement.innerHTML = summaryText;
     }
@@ -186,7 +359,7 @@ class InflationCalculator {
         document.getElementById('chartSection').style.display = 'none';
     }
 
-    createChart(series, nominalAmount) {
+    createChart(series, nominalAmount, futureValueWithInterest = null) {
         const canvas = document.getElementById('evolutionChart');
         const ctx = canvas.getContext('2d');
         
@@ -303,6 +476,14 @@ class InflationCalculator {
         ctx.fillRect(padding + chartWidth - 200, padding + 40, 15, 3);
         ctx.fillStyle = '#1e293b';
         ctx.fillText('Valor Real', padding + chartWidth - 180, padding + 45);
+        
+        // Valor futuro con interés (si está disponible)
+        if (futureValueWithInterest && futureValueWithInterest !== nominalAmount) {
+            ctx.fillStyle = '#10b981';
+            ctx.fillRect(padding + chartWidth - 200, padding + 60, 15, 3);
+            ctx.fillStyle = '#1e293b';
+            ctx.fillText('Valor con Interés', padding + chartWidth - 180, padding + 65);
+        }
         
         document.getElementById('chartSection').style.display = 'block';
     }

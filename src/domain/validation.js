@@ -32,7 +32,26 @@ export const inflationEffectSchema = z.object({
       errorMap: () => ({ message: 'La granularidad debe ser: none, yearly o quarterly' })
     })
     .optional()
-    .default('none')
+    .default('none'),
+  
+  // Nuevos campos para integración con SBS
+  account_type: z
+    .enum(['caja_ahorro', 'cuenta_ahorro', 'deposito_plazo'], {
+      errorMap: () => ({ message: 'El tipo de cuenta debe ser válido' })
+    })
+    .optional(),
+  
+  institution: z
+    .string()
+    .min(1, 'La entidad financiera es requerida')
+    .optional(),
+  
+  trea_rate: z
+    .number()
+    .min(0, 'La tasa TREA no puede ser negativa')
+    .max(100, 'La tasa TREA no puede exceder 100%')
+    .refine(val => Number.isFinite(val), 'La tasa TREA debe ser un número válido')
+    .optional()
 });
 
 /**

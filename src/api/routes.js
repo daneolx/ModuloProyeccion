@@ -9,6 +9,7 @@ import {
   getApiInfoController,
   getHistoryController,
   getStatisticsController,
+  getSBSRatesController,
   notFoundController 
 } from './effect.controller.js';
 
@@ -19,6 +20,13 @@ const router = express.Router();
  * Endpoint de información de la API
  */
 router.get('/info', getApiInfoController);
+
+/**
+ * GET /api/v1/sbs/rates
+ * Endpoint para obtener información de tasas SBS
+ * Retorna tipos de cuenta, entidades financieras y tasas TREA
+ */
+router.get('/sbs/rates', getSBSRatesController);
 
 /**
  * POST /api/v1/inflation/effect

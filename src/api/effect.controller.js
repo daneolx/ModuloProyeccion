@@ -10,6 +10,13 @@ import {
   getAllInflationQueries,
   getQueryStatistics
 } from '../persistence/queries.repository.js';
+import { 
+  accountTypes, 
+  getAllInstitutions, 
+  getTREA,
+  getInstitutionInfo,
+  getAccountTypeInfo
+} from '../data/sbs-rates.js';
 
 /**
  * Maneja la solicitud POST para calcular el efecto de la inflación
@@ -21,11 +28,23 @@ export async function calculateInflationEffectController(req, res) {
     // Validar datos de entrada
     const validatedData = validateInflationEffectData(req.body);
     
-    // Calcular métricas de inflación
-    const result = calculateInflationEffect(validatedData);
+    // Si se proporciona account_type e institution, obtener TREA
+    let treaRate = validatedData.trea_rate || 0;
+    if (validatedData.account_type && validatedData.institution && !treaRate) {
+      treaRate = getTREA(validatedData.account_type, validatedData.institution) || 0;
+    }
+    
+    // Calcular métricas de inflación (incluyendo TREA si está disponible)
+    const result = calculateInflationEffect({
+      ...validatedData,
+      trea_rate: treaRate
+    });
     
     // Log de la operación (opcional para auditoría)
-    console.log(`Cálculo realizado: ${validatedData.amount_nominal} a ${validatedData.inflation_rate}% por ${validatedData.years} años`);
+    const logMessage = treaRate > 0 
+      ? `Cálculo realizado: ${validatedData.amount_nominal} a ${validatedData.inflation_rate}% inflación, ${treaRate}% TREA por ${validatedData.years} años`
+      : `Cálculo realizado: ${validatedData.amount_nominal} a ${validatedData.inflation_rate}% por ${validatedData.years} años`;
+    console.log(logMessage);
     
     // Guardar en base de datos
     try {
@@ -34,6 +53,7 @@ export async function calculateInflationEffectController(req, res) {
       
       await saveInflationQuery({
         ...validatedData,
+        trea_rate: treaRate,
         ...result,
         client_ip: clientIp,
         user_agent: userAgent,
@@ -48,7 +68,13 @@ export async function calculateInflationEffectController(req, res) {
     // Retornar resultado exitoso
     res.status(200).json({
       success: true,
-      data: result,
+      data: {
+        ...result,
+        account_type: validatedData.account_type || null,
+        institution: validatedData.institution || null,
+        institution_info: validatedData.institution ? getInstitutionInfo(validatedData.institution) : null,
+        account_type_info: validatedData.account_type ? getAccountTypeInfo(validatedData.account_type) : null
+      },
       message: 'Cálculo realizado exitosamente'
     });
     
@@ -172,6 +198,54 @@ export async function getStatisticsController(req, res) {
     res.status(500).json({
       success: false,
       error: 'Error al obtener estadísticas',
+      timestamp: new Date().toISOString()
+    });
+  }
+}
+
+/**
+ * Maneja la solicitud GET para obtener información de tasas SBS
+ * @param {Object} req - Request object de Express
+ * @param {Object} res - Response object de Express
+ */
+export async function getSBSRatesController(req, res) {
+  try {
+    const { account_type, institution } = req.query;
+    
+    // Si se solicita TREA específica
+    if (account_type && institution) {
+      const trea = getTREA(account_type, institution);
+      const institutionInfo = getInstitutionInfo(institution);
+      const accountTypeInfo = getAccountTypeInfo(account_type);
+      
+      return res.status(200).json({
+        success: true,
+        data: {
+          trea_rate: trea,
+          institution: institutionInfo,
+          account_type: accountTypeInfo
+        }
+      });
+    }
+    
+    // Retornar toda la información disponible
+    res.status(200).json({
+      success: true,
+      data: {
+        account_types: Object.values(accountTypes),
+        institutions: getAllInstitutions(),
+        rates: {
+          // Retornar estructura de tasas (sin valores específicos por seguridad)
+          available_account_types: Object.keys(accountTypes),
+          available_institutions: getAllInstitutions().map(inst => inst.id)
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error al obtener tasas SBS:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Error al obtener información de tasas',
       timestamp: new Date().toISOString()
     });
   }
